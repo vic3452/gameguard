@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameGuard // SECURITY MONITOR</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan:#00f5ff;--neon-purple:#bf00ff;--neon-green:#00ff88;
+            --neon-red:#ff003c;--neon-orange:#ff6600;
+            --bg-dark:#050510;--bg-card:#0a0a1f;--bg-card2:#0d0d25;
+            --border-dim:#1a1a3e;--text-dim:#4a4a7a;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:var(--bg-dark);font-family:'Rajdhani',sans-serif;color:#ccd6f6;overflow-x:hidden;}
+        body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+            background-image:linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px);
+            background-size:50px 50px;pointer-events:none;z-index:0;}
+        body::after{content:'';position:fixed;top:0;left:0;width:100%;height:100%;
+            background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);
+            pointer-events:none;z-index:1;}
+        #root{position:relative;z-index:2;}
+        .neon-cyan{color:var(--neon-cyan);text-shadow:0 0 10px var(--neon-cyan),0 0 30px var(--neon-cyan);}
+        .neon-green{color:var(--neon-green);text-shadow:0 0 10px var(--neon-green),0 0 30px var(--neon-green);}
+        .neon-red{color:var(--neon-red);text-shadow:0 0 10px var(--neon-red),0 0 30px var(--neon-red);}
+        @keyframes rgb-border{0%{border-color:var(--neon-cyan);box-shadow:0 0 15px var(--neon-cyan);}33%{border-color:var(--neon-purple);box-shadow:0 0 15px var(--neon-purple);}66%{border-color:var(--neon-green);box-shadow:0 0 15px var(--neon-green);}100%{border-color:var(--neon-cyan);box-shadow:0 0 15px var(--neon-cyan);}}
+        @keyframes rgbShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+        @keyframes fade-up{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+        @keyframes slide-in{from{transform:translateX(-30px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+        @keyframes pulse-glow{0%,100%{opacity:1;}50%{opacity:0.5;}}
+        @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+        .loading-dot{animation:blink 1s infinite;}.loading-dot:nth-child(2){animation-delay:.2s;}.loading-dot:nth-child(3){animation-delay:.4s;}
+        .hud-card{background:var(--bg-card);border:1px solid var(--border-dim);position:relative;
+            clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));}
+        .hud-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+            background:linear-gradient(90deg,transparent,var(--neon-cyan),transparent);}
+        .btn-gamer{font-family:'Orbitron',monospace;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+            border:1px solid var(--neon-cyan);color:var(--neon-cyan);background:transparent;cursor:pointer;
+            position:relative;overflow:hidden;transition:all 0.3s;padding:12px 24px;
+            clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));}
+        .btn-gamer::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(0,245,255,0.2),transparent);transition:left 0.4s;}
+        .btn-gamer:hover::before{left:100%;}
+        .btn-gamer:hover{background:rgba(0,245,255,0.1);box-shadow:0 0 20px var(--neon-cyan);color:#fff;}
+        .btn-gamer.danger{border-color:var(--neon-red);color:var(--neon-red);}
+        .btn-gamer.danger:hover{background:rgba(255,0,60,0.1);box-shadow:0 0 20px var(--neon-red);color:#fff;}
+        .btn-gamer.success{border-color:var(--neon-green);color:var(--neon-green);}
+        .btn-gamer.success:hover{background:rgba(0,255,136,0.1);box-shadow:0 0 20px var(--neon-green);color:#fff;}
+        .gamer-input{background:rgba(0,245,255,0.03);border:1px solid var(--border-dim);color:#ccd6f6;
+            font-family:'Share Tech Mono',monospace;font-size:14px;padding:12px 16px;width:100%;outline:none;transition:all 0.3s;
+            clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,8px 100%,0 calc(100% - 8px));}
+        .gamer-input:focus{border-color:var(--neon-cyan);box-shadow:0 0 15px rgba(0,245,255,0.2);background:rgba(0,245,255,0.06);}
+        .gamer-input::placeholder{color:var(--text-dim);}
+        .gamer-nav{background:rgba(5,5,16,0.95);border-bottom:1px solid var(--border-dim);
+            backdrop-filter:blur(10px);position:sticky;top:0;z-index:100;}
+        .gamer-nav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+            background:linear-gradient(90deg,transparent,var(--neon-cyan),var(--neon-purple),var(--neon-green),transparent);
+            background-size:200% 200%;animation:rgbShift 4s linear infinite;}
+        .stat-card{background:var(--bg-card);border:1px solid var(--border-dim);padding:24px;position:relative;
+            overflow:hidden;cursor:pointer;transition:all 0.3s;animation:fade-up 0.5s ease both;
+            clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));}
+        .stat-card:hover{transform:translateY(-3px);}
+        .stat-card.cyan:hover{border-color:var(--neon-cyan);box-shadow:0 8px 30px rgba(0,245,255,0.2);}
+        .stat-card.green:hover{border-color:var(--neon-green);box-shadow:0 8px 30px rgba(0,255,136,0.2);}
+        .stat-card.red:hover{border-color:var(--neon-red);box-shadow:0 8px 30px rgba(255,0,60,0.2);}
+        .nav-link{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+            color:var(--text-dim);background:none;border:none;cursor:pointer;padding:8px 16px;transition:all 0.3s;position:relative;}
+        .nav-link:hover{color:var(--neon-cyan);}
+        .nav-link.active{color:var(--neon-cyan);text-shadow:0 0 10px var(--neon-cyan);}
+        .nav-link.active::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:2px;
+            background:var(--neon-cyan);box-shadow:0 0 8px var(--neon-cyan);}
+        .status-badge{font-family:'Share Tech Mono',monospace;font-size:11px;padding:3px 10px;letter-spacing:1px;display:inline-block;}
+        .activity-row{border:1px solid var(--border-dim);background:var(--bg-card);padding:16px 20px;transition:all 0.2s;animation:slide-in 0.3s ease both;}
+        .activity-row:hover{border-color:rgba(0,245,255,0.3);background:var(--bg-card2);}
+        .activity-row.suspicious{border-left:3px solid var(--neon-red);}
+        .login-bg{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;}
+        .login-bg::before{content:'';position:absolute;width:600px;height:600px;
+            background:radial-gradient(circle,rgba(191,0,255,0.08) 0%,transparent 70%);
+            top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+        .section-title{font-family:'Orbitron',monospace;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+        .rgb-bar{height:3px;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple),var(--neon-green),var(--neon-red),var(--neon-cyan));background-size:300% 100%;animation:rgbShift 3s linear infinite;}
+    </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const API_URL = 'https://gameguard-backend.onrender.com';
+
+function App() {
+    const [token, setToken] = useState(localStorage.getItem('token'));
+    const [user, setUser] = useState(null);
+    const [view, setView] = useState('dashboard');
+
+    useEffect(() => {
+        if (token) {
+            fetch(`${API_URL}/auth/verify`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(r => r.json()).then(data => { if (data.user) setUser(data.user); else logout(); })
+            .catch(() => logout());
+        }
+    }, [token]);
+
+    const logout = () => { localStorage.removeItem('token'); setToken(null); setUser(null); };
+    if (!token) return <LoginPage setToken={setToken} setUser={setUser} />;
+
+    return (
+        <div style={{minHeight:'100vh'}}>
+            <div className="rgb-bar"></div>
+            <nav className="gamer-nav">
+                <div style={{maxWidth:'1200px',margin:'0 auto',padding:'0 24px',display:'flex',justifyContent:'space-between',alignItems:'center',height:'60px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                        <span style={{fontSize:'22px'}}>🎮</span>
+                        <span style={{fontFamily:'Orbitron,monospace',fontWeight:'900',fontSize:'18px',letterSpacing:'3px'}}>
+                            <span className="neon-cyan">GAME</span><span style={{color:'#ccd6f6'}}>GUARD</span>
+                        </span>
+                        <span style={{fontFamily:'Share Tech Mono,monospace',fontSize:'10px',color:'var(--text-dim)',letterSpacing:'1px'}}>v1.0</span>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                        {[{id:'dashboard',label:'HQ'},{id:'accounts',label:'ACCOUNTS'},{id:'activities',label:'ACTIVITY'},{id:'alerts',label:'ALERTS'}].map(item => (
+                            <button key={item.id} className={`nav-link ${view===item.id?'active':''}`} onClick={() => setView(item.id)}>{item.label}</button>
+                        ))}
+                        <div style={{width:'1px',height:'20px',background:'var(--border-dim)',margin:'0 8px'}}></div>
+                        <button className="btn-gamer danger" style={{padding:'6px 16px',fontSize:'10px'}} onClick={logout}>LOGOUT</button>
+                    </div>
+                </div>
+            </nav>
+            <div style={{maxWidth:'1200px',margin:'0 auto',padding:'32px 24px'}}>
+                {view==='dashboard'  && <Dashboard token={token} setView={setView} />}
+                {view==='accounts'   && <Accounts token={token} />}
+                {view==='activities' && <Activities token={token} />}
+                {view==='alerts'     && <Alerts token={token} />}
+            </div>
+        </div>
+    );
+}
+
+function LoginPage({ setToken, setUser }) {
+    const [isLogin, setIsLogin] = useState(true);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault(); setError(''); setLoading(true);
+        try {
+            const res = await fetch(`${API_URL}${isLogin?'/auth/login':'/auth/register'}`, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({email,password})
+            });
+            const data = await res.json();
+            if (res.ok) { localStorage.setItem('token',data.token); setToken(data.token); setUser(data.user); }
+            else setError(data.error);
+        } catch { setError('BACKEND OFFLINE — IS SERVER RUNNING ON :5000?'); }
+        setLoading(false);
+    };
+
+    return (
+        <div className="login-bg">
+            <div style={{width:'100%',maxWidth:'440px',animation:'fade-up 0.6s ease both'}}>
+                <div style={{textAlign:'center',marginBottom:'40px'}}>
+                    <div style={{fontSize:'52px',marginBottom:'16px',filter:'drop-shadow(0 0 20px rgba(0,245,255,0.5))'}}>🎮</div>
+                    <h1 style={{fontFamily:'Orbitron,monospace',fontWeight:'900',fontSize:'32px',letterSpacing:'6px',marginBottom:'8px'}}>
+                        <span className="neon-cyan">GAME</span><span style={{color:'white'}}>GUARD</span>
+                    </h1>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'8px'}}>
+                        <div style={{height:'1px',width:'40px',background:'linear-gradient(90deg,transparent,var(--neon-purple))'}}></div>
+                        <span style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-purple)',letterSpacing:'4px'}}>SECURITY MONITOR</span>
+                        <div style={{height:'1px',width:'40px',background:'linear-gradient(90deg,var(--neon-purple),transparent)'}}></div>
+                    </div>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',letterSpacing:'2px'}}>
+                        {isLogin?'// ENTER CREDENTIALS TO ACCESS':'// CREATE NEW OPERATOR ACCOUNT'}
+                    </p>
+                </div>
+
+                <div className="hud-card" style={{padding:'32px',animation:'rgb-border 4s linear infinite'}}>
+                    <div style={{display:'flex',marginBottom:'28px',border:'1px solid var(--border-dim)'}}>
+                        {['LOGIN','REGISTER'].map(mode => (
+                            <button key={mode} onClick={() => { setIsLogin(mode==='LOGIN'); setError(''); }} style={{
+                                flex:1,padding:'10px',fontFamily:'Orbitron,monospace',fontSize:'11px',letterSpacing:'2px',
+                                border:'none',cursor:'pointer',
+                                background:(isLogin?mode==='LOGIN':mode==='REGISTER')?'rgba(0,245,255,0.1)':'transparent',
+                                color:(isLogin?mode==='LOGIN':mode==='REGISTER')?'var(--neon-cyan)':'var(--text-dim)',
+                                borderBottom:(isLogin?mode==='LOGIN':mode==='REGISTER')?'2px solid var(--neon-cyan)':'2px solid transparent',
+                                transition:'all 0.3s'
+                            }}>{mode}</button>
+                        ))}
+                    </div>
+
+                    <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+                        <div>
+                            <label style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)',letterSpacing:'2px',display:'block',marginBottom:'6px'}}>// EMAIL_ADDRESS</label>
+                            <input type="email" className="gamer-input" placeholder="operator@gameguard.io" value={email} onChange={e=>setEmail(e.target.value)} required />
+                        </div>
+                        <div>
+                            <label style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)',letterSpacing:'2px',display:'block',marginBottom:'6px'}}>// PASSCODE</label>
+                            <input type="password" className="gamer-input" placeholder="••••••••••••" value={password} onChange={e=>setPassword(e.target.value)} required />
+                        </div>
+                        {error && <div style={{background:'rgba(255,0,60,0.1)',border:'1px solid var(--neon-red)',padding:'12px 16px',fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--neon-red)',letterSpacing:'1px'}}>⚠ {error.toUpperCase()}</div>}
+                        <button type="submit" disabled={loading} style={{
+                            marginTop:'8px',padding:'14px',fontFamily:'Orbitron,monospace',fontWeight:'700',
+                            fontSize:'13px',letterSpacing:'3px',textTransform:'uppercase',
+                            border:'1px solid var(--neon-cyan)',color:loading?'var(--text-dim)':'var(--neon-cyan)',
+                            background:loading?'transparent':'rgba(0,245,255,0.08)',cursor:loading?'not-allowed':'pointer',transition:'all 0.3s',
+                            clipPath:'polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))'
+                        }}>
+                            {loading?<span>AUTHENTICATING<span className="loading-dot">.</span><span className="loading-dot">.</span><span className="loading-dot">.</span></span>:(isLogin?'▶ ENTER SYSTEM':'▶ CREATE ACCOUNT')}
+                        </button>
+                    </form>
+                </div>
+                <p style={{textAlign:'center',fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',marginTop:'16px',letterSpacing:'1px'}}>
+                    {isLogin?'NO ACCOUNT? ':'HAVE ACCOUNT? '}
+                    <button onClick={()=>{setIsLogin(!isLogin);setError('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--neon-purple)',fontFamily:'inherit',fontSize:'inherit',letterSpacing:'inherit'}}>
+                        {isLogin?'[ REGISTER ]':'[ LOGIN ]'}
+                    </button>
+                </p>
+            </div>
+        </div>
+    );
+}
+
+function Dashboard({ token, setView }) {
+    const [stats, setStats] = useState({accounts:0,activities:0,alerts:0});
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        Promise.all([
+            fetch(`${API_URL}/accounts`,{headers:{'Authorization':`Bearer ${token}`}}),
+            fetch(`${API_URL}/activities`,{headers:{'Authorization':`Bearer ${token}`}}),
+            fetch(`${API_URL}/alerts`,{headers:{'Authorization':`Bearer ${token}`}})
+        ])
+        .then(r=>Promise.all(r.map(x=>x.json())))
+        .then(([a,b,c])=>{ setStats({accounts:a.accounts?.length||0,activities:b.count||0,alerts:c.alerts?.filter(x=>x.status==='pending').length||0}); setLoading(false); });
+    }, [token]);
+
+    const cards = [
+        {id:'accounts',  label:'LINKED ACCOUNTS',   value:stats.accounts,   color:'cyan',  icon:'◈',desc:'Active gaming platforms'},
+        {id:'activities',label:'ACTIVITIES LOGGED',  value:stats.activities, color:'green', icon:'◉',desc:'Monitored login events'},
+        {id:'alerts',    label:'PENDING ALERTS',     value:stats.alerts,     color:'red',   icon:'⚠',desc:'Threats awaiting review'},
+    ];
+    const getColor = c => c==='cyan'?'var(--neon-cyan)':c==='green'?'var(--neon-green)':'var(--neon-red)';
+
+    return (
+        <div>
+            <div style={{marginBottom:'32px',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)',letterSpacing:'3px',marginBottom:'8px'}}>◈ SYSTEM.HQ</p>
+                    <h2 className="section-title" style={{fontSize:'28px',color:'white',marginBottom:'4px'}}>SECURITY <span className="neon-cyan">OVERVIEW</span></h2>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--text-dim)'}}>// REAL-TIME ACCOUNT MONITORING DASHBOARD</p>
+                </div>
+                <div style={{textAlign:'right',fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)'}}>
+                    <div className="neon-green" style={{marginBottom:'4px',fontSize:'12px'}}>● SYSTEM ONLINE</div>
+                    <div>{new Date().toLocaleString()}</div>
+                </div>
+            </div>
+
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'16px',marginBottom:'24px'}}>
+                {cards.map((card,i) => (
+                    <div key={card.id} className={`stat-card ${card.color}`} style={{animationDelay:`${i*0.1}s`}} onClick={()=>setView(card.id)}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px'}}>
+                            <span style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',letterSpacing:'2px'}}>{card.label}</span>
+                            <span style={{fontSize:'20px',color:getColor(card.color),filter:`drop-shadow(0 0 8px ${getColor(card.color)})`}}>{card.icon}</span>
+                        </div>
+                        <div style={{fontFamily:'Orbitron,monospace',fontWeight:'900',fontSize:'44px',color:getColor(card.color),textShadow:`0 0 20px ${getColor(card.color)}`,lineHeight:1,marginBottom:'8px'}}>
+                            {loading?'—':card.value}
+                        </div>
+                        <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)'}}>{card.desc}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div style={{border:`1px solid ${stats.alerts>0?'var(--neon-red)':'var(--neon-green)'}`,background:stats.alerts>0?'rgba(255,0,60,0.05)':'rgba(0,255,136,0.05)',padding:'20px 24px',boxShadow:stats.alerts>0?'0 0 20px rgba(255,0,60,0.1)':'0 0 20px rgba(0,255,136,0.1)',clipPath:'polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px))'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <span style={{fontSize:'24px'}}>{stats.alerts>0?'⚠':'🛡'}</span>
+                    <div>
+                        <div style={{fontFamily:'Orbitron,monospace',fontWeight:'700',fontSize:'13px',letterSpacing:'2px',marginBottom:'4px',color:stats.alerts>0?'var(--neon-red)':'var(--neon-green)'}}>
+                            {stats.alerts>0?`THREAT DETECTED — ${stats.alerts} ALERT(S) PENDING`:'ALL SYSTEMS NOMINAL — NO THREATS DETECTED'}
+                        </div>
+                        <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--text-dim)'}}>
+                            {stats.alerts>0?'// Navigate to ALERTS to review and respond to security events':'// Monitoring active. All gaming accounts are secure.'}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function Accounts({ token }) {
+    const [accounts, setAccounts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [msg, setMsg] = useState('');
+
+    const fetchAccounts = () => {
+        fetch(`${API_URL}/accounts`,{headers:{'Authorization':`Bearer ${token}`}})
+        .then(r=>r.json()).then(data=>{setAccounts(data.accounts||[]);setLoading(false);});
+    };
+    useEffect(()=>{fetchAccounts();},[token]);
+
+    const linkDemo = async () => {
+        const res = await fetch(`${API_URL}/accounts/link-demo`,{method:'POST',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({displayName:'PLAYER_'+Math.floor(Math.random()*9999)})});
+        const data = await res.json();
+        if (res.ok){fetchAccounts();setMsg('');}else setMsg(data.error);
+    };
+
+    return (
+        <div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'32px'}}>
+                <div>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)',letterSpacing:'3px',marginBottom:'8px'}}>◈ ACCOUNTS.MGR</p>
+                    <h2 className="section-title" style={{fontSize:'28px',color:'white',marginBottom:'4px'}}>GAMING <span className="neon-cyan">ACCOUNTS</span></h2>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--text-dim)'}}>// LINKED PLATFORM MONITORING</p>
+                </div>
+                <button className="btn-gamer" onClick={linkDemo}>+ LINK ACCOUNT</button>
+            </div>
+            {msg&&<div style={{border:'1px solid var(--neon-red)',background:'rgba(255,0,60,0.1)',padding:'12px 16px',fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--neon-red)',marginBottom:'16px'}}>⚠ {msg.toUpperCase()}</div>}
+            {loading?<LoadingState/>:accounts.length===0?<EmptyState icon="◈" title="NO ACCOUNTS LINKED" desc="Link a gaming account to begin monitoring" action={linkDemo} actionLabel="LINK FIRST ACCOUNT"/>:(
+                <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                    {accounts.map(acc=>(
+                        <div key={acc.id} className="hud-card" style={{padding:'20px 24px',display:'flex',alignItems:'center',gap:'20px',border:'1px solid var(--border-dim)'}}>
+                            <img src={acc.avatar_url} alt={acc.display_name} style={{width:'56px',height:'56px',borderRadius:'50%',border:'2px solid var(--neon-cyan)',boxShadow:'0 0 15px rgba(0,245,255,0.3)'}}/>
+                            <div style={{flex:1}}>
+                                <div style={{fontFamily:'Orbitron,monospace',fontWeight:'700',fontSize:'15px',color:'white',letterSpacing:'1px',marginBottom:'4px'}}>{acc.display_name}</div>
+                                <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',letterSpacing:'1px'}}>
+                                    PLATFORM: <span style={{color:'var(--neon-cyan)'}}>{acc.platform.toUpperCase()}</span> &nbsp;|&nbsp; LINKED: <span style={{color:'var(--neon-cyan)'}}>{new Date(acc.linked_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <span className="status-badge" style={{border:'1px solid var(--neon-green)',color:'var(--neon-green)',background:'rgba(0,255,136,0.08)'}}>● ACTIVE</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function Activities({ token }) {
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchActivities = () => {
+        fetch(`${API_URL}/activities`,{headers:{'Authorization':`Bearer ${token}`}})
+        .then(r=>r.json()).then(data=>{setActivities(data.activities||[]);setLoading(false);});
+    };
+    useEffect(()=>{fetchActivities();},[token]);
+    const createDemo = async()=>{ await fetch(`${API_URL}/activities/demo`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}}); fetchActivities(); };
+
+    return (
+        <div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'32px'}}>
+                <div>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-green)',letterSpacing:'3px',marginBottom:'8px'}}>◉ ACTIVITY.LOG</p>
+                    <h2 className="section-title" style={{fontSize:'28px',color:'white',marginBottom:'4px'}}>LOGIN <span className="neon-green">ACTIVITY</span></h2>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--text-dim)'}}>// ALL MONITORED ACCESS EVENTS</p>
+                </div>
+                <button className="btn-gamer success" onClick={createDemo}>+ SIMULATE EVENT</button>
+            </div>
+            {loading?<LoadingState/>:activities.length===0?<EmptyState icon="◉" title="NO ACTIVITY RECORDED" desc="Simulate events to populate the log" action={createDemo} actionLabel="SIMULATE EVENT" color="green"/>:(
+                <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:'16px',padding:'8px 20px',fontFamily:'Share Tech Mono,monospace',fontSize:'10px',color:'var(--text-dim)',letterSpacing:'2px',borderBottom:'1px solid var(--border-dim)'}}>
+                        <span>TYPE // ACCOUNT</span><span>LOCATION // IP</span><span>TIMESTAMP</span><span>STATUS</span>
+                    </div>
+                    {activities.map(a=>(
+                        <div key={a.id} className={`activity-row ${a.is_suspicious?'suspicious':''}`}>
+                            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr auto',gap:'16px',alignItems:'center'}}>
+                                <div>
+                                    <div style={{fontFamily:'Orbitron,monospace',fontSize:'12px',color:'white',letterSpacing:'1px',marginBottom:'2px'}}>{a.activity_type.toUpperCase()}</div>
+                                    <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)'}}>{a.display_name}</div>
+                                </div>
+                                <div>
+                                    <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'#ccd6f6',marginBottom:'2px'}}>📍 {a.city}, {a.country}</div>
+                                    <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)'}}>{a.ip_address}</div>
+                                </div>
+                                <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)'}}>{new Date(a.created_at).toLocaleString()}</div>
+                                <div>{a.is_suspicious?<span className="status-badge" style={{border:'1px solid var(--neon-red)',color:'var(--neon-red)',background:'rgba(255,0,60,0.1)'}}>⚠ THREAT</span>:<span className="status-badge" style={{border:'1px solid var(--neon-green)',color:'var(--neon-green)',background:'rgba(0,255,136,0.08)'}}>✓ CLEAR</span>}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function Alerts({ token }) {
+    const [alerts, setAlerts] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchAlerts = () => {
+        fetch(`${API_URL}/alerts`,{headers:{'Authorization':`Bearer ${token}`}})
+        .then(r=>r.json()).then(data=>{setAlerts(data.alerts||[]);setLoading(false);});
+    };
+    useEffect(()=>{fetchAlerts();},[token]);
+    const createDemo = async()=>{ await fetch(`${API_URL}/alerts/demo`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}}); fetchAlerts(); };
+    const updateAlert = async(id,status)=>{ await fetch(`${API_URL}/alerts/${id}`,{method:'PATCH',headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({status})}); fetchAlerts(); };
+
+    const sev = {
+        high:{border:'var(--neon-red)',badge:'rgba(255,0,60,0.15)',color:'var(--neon-red)',label:'HIGH'},
+        medium:{border:'var(--neon-orange)',badge:'rgba(255,102,0,0.15)',color:'var(--neon-orange)',label:'MEDIUM'},
+        low:{border:'var(--neon-cyan)',badge:'rgba(0,245,255,0.15)',color:'var(--neon-cyan)',label:'LOW'},
+    };
+
+    return (
+        <div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'32px'}}>
+                <div>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-red)',letterSpacing:'3px',marginBottom:'8px'}}>⚠ ALERT.CENTER</p>
+                    <h2 className="section-title" style={{fontSize:'28px',color:'white',marginBottom:'4px'}}>SECURITY <span className="neon-red">ALERTS</span></h2>
+                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--text-dim)'}}>// REVIEW AND RESPOND TO SECURITY EVENTS</p>
+                </div>
+                <button className="btn-gamer danger" onClick={createDemo}>+ SIMULATE ALERT</button>
+            </div>
+            {loading?<LoadingState/>:alerts.length===0?<EmptyState icon="🛡" title="NO ACTIVE ALERTS" desc="All gaming accounts are secure." color="green"/>:(
+                <div style={{display:'flex',flexDirection:'column',gap:'16px'}}>
+                    {alerts.map(alert=>{
+                        const s=sev[alert.severity]||sev.low;
+                        let details={};try{details=JSON.parse(alert.details);}catch(e){}
+                        return(
+                            <div key={alert.id} style={{border:`1px solid ${s.border}`,background:`linear-gradient(135deg,${s.badge},transparent)`,padding:'24px',boxShadow:`0 0 20px ${s.badge}`,clipPath:'polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px))'}}>
+                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px'}}>
+                                    <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
+                                        <div style={{fontFamily:'Orbitron,monospace',fontWeight:'900',fontSize:'11px',letterSpacing:'2px',padding:'6px 12px',border:`1px solid ${s.color}`,color:s.color,background:s.badge}}>{s.label}</div>
+                                        <div>
+                                            <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',letterSpacing:'2px',marginBottom:'4px'}}>{alert.alert_type?.replace(/_/g,' ').toUpperCase()}</div>
+                                            <div style={{fontFamily:'Orbitron,monospace',fontSize:'14px',color:'white',fontWeight:'700'}}>{alert.display_name}</div>
+                                        </div>
+                                    </div>
+                                    <span className="status-badge" style={{border:`1px solid ${alert.status==='pending'?'var(--neon-orange)':alert.status==='verified'?'var(--neon-green)':'var(--neon-red)'}`,color:alert.status==='pending'?'var(--neon-orange)':alert.status==='verified'?'var(--neon-green)':'var(--neon-red)'}}>{alert.status?.toUpperCase()}</span>
+                                </div>
+                                <div style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'#8892b0',marginBottom:'16px',paddingLeft:'4px',borderLeft:`2px solid ${s.color}`}}>
+                                    <div style={{marginBottom:'4px'}}>MSG: {details.message}</div>
+                                    <div style={{marginBottom:'4px'}}>LOC: {details.location} | DEV: {details.device}</div>
+                                    <div style={{color:'var(--text-dim)'}}>TIME: {new Date(alert.created_at).toLocaleString()}</div>
+                                </div>
+                                {alert.status==='pending'&&(
+                                    <div style={{display:'flex',gap:'12px',paddingTop:'16px',borderTop:'1px solid var(--border-dim)'}}>
+                                        <button className="btn-gamer success" style={{fontSize:'11px',padding:'8px 20px'}} onClick={()=>updateAlert(alert.id,'verified')}>✓ AUTHORIZED</button>
+                                        <button className="btn-gamer danger" style={{fontSize:'11px',padding:'8px 20px'}} onClick={()=>updateAlert(alert.id,'threat')}>⚠ REPORT THREAT</button>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function LoadingState() {
+    return(
+        <div style={{textAlign:'center',padding:'60px',fontFamily:'Share Tech Mono,monospace',color:'var(--neon-cyan)'}}>
+            <div style={{fontSize:'32px',marginBottom:'12px',animation:'pulse-glow 1s infinite'}}>⬡</div>
+            <div style={{fontSize:'12px',letterSpacing:'4px'}}>LOADING<span className="loading-dot">.</span><span className="loading-dot">.</span><span className="loading-dot">.</span></div>
+        </div>
+    );
+}
+
+function EmptyState({ icon, title, desc, action, actionLabel, color='cyan' }) {
+    const c = color==='green'?'var(--neon-green)':'var(--neon-cyan)';
+    return(
+        <div style={{border:'1px solid var(--border-dim)',background:'var(--bg-card)',padding:'60px',textAlign:'center',clipPath:'polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px))'}}>
+            <div style={{fontSize:'40px',marginBottom:'16px',color:c,filter:`drop-shadow(0 0 10px ${c})`}}>{icon}</div>
+            <div style={{fontFamily:'Orbitron,monospace',fontWeight:'700',fontSize:'14px',letterSpacing:'3px',color:'white',marginBottom:'8px'}}>{title}</div>
+            <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--text-dim)',marginBottom:action?'24px':'0'}}>{desc}</p>
+            {action&&<button className={`btn-gamer ${color==='green'?'success':''}`} onClick={action}>{actionLabel}</button>}
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
