@@ -21,7 +21,13 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:8000',
+        'https://YOURUSERNAME.github.io'
+    ],
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
