@@ -24,7 +24,7 @@ pool.query('SELECT NOW()', (err, res) => {
 app.use(cors({
     origin: [
         'http://localhost:8000',
-        'https://YOURUSERNAME.github.io'
+        'https://vic3452.github.io'
     ],
     credentials: true
 }));
