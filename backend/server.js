@@ -54,10 +54,10 @@ app.get('/health', async (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/accounts', require('./routes/accounts'));
-app.use('/api/activities', require('./routes/activities'));
-app.use('/api/alerts', require('./routes/alerts'));
+app.use('/auth', require('./routes/auth'));
+app.use('/accounts', require('./routes/accounts'));
+app.use('/activities', require('./routes/activities'));
+app.use('/alerts', require('./routes/alerts'));
 
 // Error handling
 app.use((err, req, res, next) => {
