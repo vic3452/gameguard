@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Colors
-BLUE='\033[0;32m'
-RED='\033[0;36m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 echo -e "${CYAN}🎮 Starting GameGuard...${NC}"
@@ -13,8 +14,11 @@ if ! systemctl is-active --quiet postgresql; then
     sudo systemctl start postgresql
 fi
 
+# Get the script's directory for relative paths
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Start backend in background
-cd ~/gameguard-project/backend
+cd "$DIR/backend"
 echo -e "${GREEN}Starting backend on port 5000...${NC}"
 npm start &
 BACKEND_PID=$!
@@ -22,10 +26,10 @@ BACKEND_PID=$!
 # Wait a bit for backend to start
 sleep 2
 
-# Start frontend in background
-cd ~/gameguard-project/frontend
+# Start frontend in background (Vite)
+cd "$DIR/frontend"
 echo -e "${GREEN}Starting frontend on port 8000...${NC}"
-python3 -m http.server 8000 &
+npm run dev -- --port 8000 &
 FRONTEND_PID=$!
 
 echo ""
@@ -34,7 +38,7 @@ echo -e "${GREEN}✅ GameGuard is running!${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo -e "🔗 Frontend: ${CYAN}http://localhost:8000${NC}"
-echo -e "🔗 Backend:  ${CYAN}http://localhost:5000${NC}"
+echo -e "🔗 Backend:  ${CYAN}http://localhost:5000/api${NC}"
 echo ""
 echo -e "Press ${GREEN}Ctrl+C${NC} to stop both servers"
 echo ""
