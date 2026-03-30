@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const API_URL = '/api';
 
-function LoginPage({ setToken, setUser }) {
+function LoginPage({ onLoginSuccess }) {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -13,14 +13,14 @@ function LoginPage({ setToken, setUser }) {
         e.preventDefault(); setError(''); setLoading(true);
         try {
             const res = await fetch(`${API_URL}${isLogin?'/auth/login':'/auth/register'}`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({email,password})
+                method:'POST', 
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({email,password}),
+                credentials: 'include'
             });
             const data = await res.json();
             if (res.ok) { 
-                localStorage.setItem('token',data.token); 
-                setToken(data.token); 
-                setUser(data.user); 
+                onLoginSuccess(data.user);
             }
             else setError(data.error);
         } catch { setError('BACKEND OFFLINE — IS SERVER RUNNING ON :5000?'); }
@@ -78,6 +78,22 @@ function LoginPage({ setToken, setUser }) {
                         }}>
                             {loading?<span>AUTHENTICATING<span className="loading-dot">.</span><span className="loading-dot">.</span><span className="loading-dot">.</span></span>:(isLogin?'▶ ENTER SYSTEM':'▶ CREATE ACCOUNT')}
                         </button>
+
+                        <div style={{display:'flex', alignItems:'center', gap:'12px', margin:'16px 0'}}>
+                            <div style={{flex:1, height:'1px', background:'var(--border-dim)'}}></div>
+                            <span style={{fontSize:'10px', color:'var(--text-dim)', fontFamily:'Share Tech Mono'}}>OR</span>
+                            <div style={{flex:1, height:'1px', background:'var(--border-dim)'}}></div>
+                        </div>
+
+                        <a href={`${API_URL}/auth/steam`} style={{
+                            display:'flex', alignItems:'center', justifyContent:'center', gap:'12px',
+                            padding:'12px', background:'rgba(255,255,255,0.05)', border:'1px solid #66c0f4',
+                            color:'#66c0f4', textDecoration:'none', fontFamily:'Orbitron', fontSize:'11px',
+                            letterSpacing:'1px', transition:'all 0.3s'
+                        }} className="steam-btn">
+                            <img src="https://community.cloudflare.steamstatic.com/public/images/signinthroughsteam/sits_01.png" alt="Steam" style={{height:'20px'}} />
+                            SIGN IN WITH STEAM
+                        </a>
                     </form>
                 </div>
                 <p style={{textAlign:'center',fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',marginTop:'16px',letterSpacing:'1px'}}>

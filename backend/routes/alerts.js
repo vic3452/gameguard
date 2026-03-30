@@ -66,9 +66,17 @@ router.post('/demo', authMiddleware, async (req, res) => {
             ]
         );
 
+        const newAlert = result.rows[0];
+
+        // Real-time notification
+        if (req.app.locals.io) {
+            req.app.locals.io.to(`user_${req.user.userId}`).emit('new_alert', newAlert);
+            console.log(`📣 Real-time alert emitted for user ${req.user.userId}`);
+        }
+
         res.status(201).json({
             message: 'Demo alert created',
-            alert: result.rows[0]
+            alert: newAlert
         });
 
     } catch (error) {
