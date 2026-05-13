@@ -8,28 +8,26 @@ NC='\033[0m'
 
 echo -e "${CYAN}🎮 Starting GameGuard...${NC}"
 
-# Check if PostgreSQL is running
-if ! systemctl is-active --quiet postgresql; then
-    echo "Starting PostgreSQL..."
-    sudo systemctl start postgresql
-fi
-
 # Get the script's directory for relative paths
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Start backend in background
 cd "$DIR/backend"
-echo -e "${GREEN}Starting backend on port 5000...${NC}"
+echo -e "${GREEN}Installing backend dependencies...${NC}"
+npm install --silent
+echo -e "${GREEN}Starting backend (MongoDB version) on port 5000...${NC}"
 npm start &
 BACKEND_PID=$!
 
-# Wait a bit for backend to start
-sleep 2
+# Wait a bit for backend to start (give extra time for DB connection)
+sleep 5
 
 # Start frontend in background (Vite)
 cd "$DIR/frontend"
-echo -e "${GREEN}Starting frontend on port 8000...${NC}"
-npm run dev -- --port 8000 &
+echo -e "${GREEN}Installing frontend dependencies...${NC}"
+npm install --silent
+echo -e "${GREEN}Starting frontend on port 3000...${NC}"
+npm run dev -- --port 3000 &
 FRONTEND_PID=$!
 
 echo ""
@@ -37,7 +35,7 @@ echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━�
 echo -e "${GREEN}✅ GameGuard is running!${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo -e "🔗 Frontend: ${CYAN}http://localhost:8000${NC}"
+echo -e "🔗 Frontend: ${CYAN}http://localhost:3000${NC}"
 echo -e "🔗 Backend:  ${CYAN}http://localhost:5000/api${NC}"
 echo ""
 echo -e "Press ${GREEN}Ctrl+C${NC} to stop both servers"

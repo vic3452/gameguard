@@ -1,110 +1,107 @@
-import React, { useState } from 'react';
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
+import toast from 'react-hot-toast'
+import { Shield, Eye, EyeOff, Lock, Mail } from 'lucide-react'
 
-const API_URL = '/api';
+export default function LoginPage() {
+  const [form, setForm]         = useState({ email: '', password: '' })
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const { login }               = useAuth()
+  const navigate                = useNavigate()
 
-function LoginPage({ onLoginSuccess }) {
-    const [isLogin, setIsLogin] = useState(true);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
+  const handle = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const { data } = await api.post('/auth/login', form)
+      if (data.requiresTwoFactor) {
+        sessionStorage.setItem('gg_2fa_uid', data.userId)
+        toast('Verification code sent to your email', { icon: '📧' })
+        navigate('/2fa')
+      } else {
+        login(data.token, data.user)
+        toast.success('Welcome back, ' + data.user.username)
+        navigate('/')
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault(); setError(''); setLoading(true);
-        try {
-            const res = await fetch(`${API_URL}${isLogin?'/auth/login':'/auth/register'}`, {
-                method:'POST', 
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({email,password}),
-                credentials: 'include'
-            });
-            const data = await res.json();
-            if (res.ok) { 
-                onLoginSuccess(data.user);
-            }
-            else setError(data.error);
-        } catch { setError('BACKEND OFFLINE — IS SERVER RUNNING ON :5000?'); }
-        setLoading(false);
-    };
-
-    return (
-        <div className="login-bg">
-            <div style={{width:'100%',maxWidth:'440px',animation:'fade-up 0.6s ease both'}}>
-                <div style={{textAlign:'center',marginBottom:'40px'}}>
-                    <div style={{fontSize:'52px',marginBottom:'16px',filter:'drop-shadow(0 0 20px rgba(0,245,255,0.5))'}}>🎮</div>
-                    <h1 style={{fontFamily:'Orbitron,monospace',fontWeight:'900',fontSize:'32px',letterSpacing:'6px',marginBottom:'8px'}}>
-                        <span className="neon-cyan">GAME</span><span style={{color:'white'}}>GUARD</span>
-                    </h1>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'8px'}}>
-                        <div style={{height:'1px',width:'40px',background:'linear-gradient(90deg,transparent,var(--neon-purple))'}}></div>
-                        <span style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-purple)',letterSpacing:'4px'}}>SECURITY MONITOR</span>
-                        <div style={{height:'1px',width:'40px',background:'linear-gradient(90deg,var(--neon-purple),transparent)'}}></div>
-                    </div>
-                    <p style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',letterSpacing:'2px'}}>
-                        {isLogin?'// ENTER CREDENTIALS TO ACCESS':'// CREATE NEW OPERATOR ACCOUNT'}
-                    </p>
-                </div>
-
-                <div className="hud-card" style={{padding:'32px',animation:'rgb-border 4s linear infinite'}}>
-                    <div style={{display:'flex',marginBottom:'28px',border:'1px solid var(--border-dim)'}}>
-                        {['LOGIN','REGISTER'].map(mode => (
-                            <button key={mode} onClick={() => { setIsLogin(mode==='LOGIN'); setError(''); }} style={{
-                                flex:1,padding:'10px',fontFamily:'Orbitron,monospace',fontSize:'11px',letterSpacing:'2px',
-                                border:'none',cursor:'pointer',
-                                background:(isLogin?mode==='LOGIN':mode==='REGISTER')?'rgba(0,245,255,0.1)':'transparent',
-                                color:(isLogin?mode==='LOGIN':mode==='REGISTER')?'var(--neon-cyan)':'var(--text-dim)',
-                                borderBottom:(isLogin?mode==='LOGIN':mode==='REGISTER')?'2px solid var(--neon-cyan)':'2px solid transparent',
-                                transition:'all 0.3s'
-                            }}>{mode}</button>
-                        ))}
-                    </div>
-
-                    <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:'16px'}}>
-                        <div>
-                            <label style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)',letterSpacing:'2px',display:'block',marginBottom:'6px'}}>// EMAIL_ADDRESS</label>
-                            <input type="email" className="gamer-input" placeholder="operator@gameguard.io" value={email} onChange={e=>setEmail(e.target.value)} required />
-                        </div>
-                        <div>
-                            <label style={{fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--neon-cyan)',letterSpacing:'2px',display:'block',marginBottom:'6px'}}>// PASSCODE</label>
-                            <input type="password" className="gamer-input" placeholder="••••••••••••" value={password} onChange={e=>setPassword(e.target.value)} required />
-                        </div>
-                        {error && <div style={{background:'rgba(255,0,60,0.1)',border:'1px solid var(--neon-red)',padding:'12px 16px',fontFamily:'Share Tech Mono,monospace',fontSize:'12px',color:'var(--neon-red)',letterSpacing:'1px'}}>⚠ {error.toUpperCase()}</div>}
-                        <button type="submit" disabled={loading} style={{
-                            marginTop:'8px',padding:'14px',fontFamily:'Orbitron,monospace',fontWeight:'700',
-                            fontSize:'13px',letterSpacing:'3px',textTransform:'uppercase',
-                            border:'1px solid var(--neon-cyan)',color:loading?'var(--text-dim)':'var(--neon-cyan)',
-                            background:loading?'transparent':'rgba(0,245,255,0.08)',cursor:loading?'not-allowed':'pointer',transition:'all 0.3s',
-                            clipPath:'polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))'
-                        }}>
-                            {loading?<span>AUTHENTICATING<span className="loading-dot">.</span><span className="loading-dot">.</span><span className="loading-dot">.</span></span>:(isLogin?'▶ ENTER SYSTEM':'▶ CREATE ACCOUNT')}
-                        </button>
-
-                        <div style={{display:'flex', alignItems:'center', gap:'12px', margin:'16px 0'}}>
-                            <div style={{flex:1, height:'1px', background:'var(--border-dim)'}}></div>
-                            <span style={{fontSize:'10px', color:'var(--text-dim)', fontFamily:'Share Tech Mono'}}>OR</span>
-                            <div style={{flex:1, height:'1px', background:'var(--border-dim)'}}></div>
-                        </div>
-
-                        <a href={`${API_URL}/auth/steam`} style={{
-                            display:'flex', alignItems:'center', justifyContent:'center', gap:'12px',
-                            padding:'12px', background:'rgba(255,255,255,0.05)', border:'1px solid #66c0f4',
-                            color:'#66c0f4', textDecoration:'none', fontFamily:'Orbitron', fontSize:'11px',
-                            letterSpacing:'1px', transition:'all 0.3s'
-                        }} className="steam-btn">
-                            <img src="https://community.cloudflare.steamstatic.com/public/images/signinthroughsteam/sits_01.png" alt="Steam" style={{height:'20px'}} />
-                            SIGN IN WITH STEAM
-                        </a>
-                    </form>
-                </div>
-                <p style={{textAlign:'center',fontFamily:'Share Tech Mono,monospace',fontSize:'11px',color:'var(--text-dim)',marginTop:'16px',letterSpacing:'1px'}}>
-                    {isLogin?'NO ACCOUNT? ':'HAVE ACCOUNT? '}
-                    <button onClick={()=>{setIsLogin(!isLogin);setError('');}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--neon-purple)',fontFamily:'inherit',fontSize:'inherit',letterSpacing:'inherit'}}>
-                        {isLogin?'[ REGISTER ]':'[ LOGIN ]'}
-                    </button>
-                </p>
-            </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <div className="relative z-10 w-full max-w-md mx-4">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5"
+               style={{ background: 'linear-gradient(135deg, #7c3aed, #5b21b6)', boxShadow: '0 0 40px rgba(124,58,237,0.5)' }}>
+            <Shield size={28} color="white" />
+          </div>
+          <h1 className="font-display text-3xl text-white tracking-widest font-bold">GAMEGUARD</h1>
+          <p className="font-mono-gg text-purple-400 text-sm mt-2">SECURE GAMING PROTECTION</p>
         </div>
-    );
-}
 
-export default LoginPage;
+        {/* Card */}
+        <div className="gamer-card glow-border p-8">
+          <div className="scan-line" />
+          <h2 className="font-display text-lg text-white mb-6 tracking-wider">ACCESS TERMINAL</h2>
+
+          <form onSubmit={handle} className="space-y-5">
+            <div>
+              <label className="font-mono-gg text-purple-300 text-xs mb-2 block tracking-widest">EMAIL</label>
+              <div className="relative">
+                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-500" />
+                <input
+                  type="email" required
+                  className="input-gamer pl-9"
+                  placeholder="agent@gameguard.io"
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="font-mono-gg text-purple-300 text-xs mb-2 block tracking-widest">PASSWORD</label>
+              <div className="relative">
+                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-500" />
+                <input
+                  type={showPass ? 'text' : 'password'} required
+                  className="input-gamer pl-9 pr-10"
+                  placeholder="••••••••••••"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                />
+                <button type="button" onClick={() => setShowPass(p => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-500 hover:text-purple-300">
+                  {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className="btn-primary w-full mt-2" style={{ padding: '12px' }}>
+              {loading ? 'AUTHENTICATING...' : 'INITIATE LOGIN'}
+            </button>
+          </form>
+
+          <p className="font-mono-gg text-gray-500 text-xs text-center mt-6">
+            New agent?{' '}
+            <Link to="/register" className="text-purple-400 hover:text-purple-300">Create account</Link>
+          </p>
+
+          {/* Demo hint */}
+          <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}>
+            <p className="font-mono-gg text-purple-400 text-xs text-center">
+              Demo: demo@gameguard.io / Demo@1234!
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

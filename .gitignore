@@ -17,3 +17,6 @@ frontend/.env
 
 # OS files
 .DS_Store
+
+# MongoDB data directory
+mongodb_data/

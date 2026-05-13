@@ -1,0 +1,10 @@
+const express = require('express');
+const router  = express.Router();
+const ctrl    = require('../controllers/accountController');
+const { protect }  = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
+router.get('/',         protect,                     ctrl.getAccounts);
+router.post('/',        protect, validate('addAccount'), ctrl.addAccount);
+router.put('/:id',      protect,                     ctrl.updateAccount);
+router.delete('/:id',   protect,                     ctrl.deleteAccount);
+module.exports = router;
