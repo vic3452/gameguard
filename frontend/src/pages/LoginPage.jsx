@@ -93,13 +93,6 @@ export default function LoginPage() {
             New agent?{' '}
             <Link to="/register" className="text-purple-400 hover:text-purple-300">Create account</Link>
           </p>
-
-          {/* Demo hint */}
-          <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}>
-            <p className="font-mono-gg text-purple-400 text-xs text-center">
-              Demo: demo@gameguard.io / Demo@1234!
-            </p>
-          </div>
         </div>
       </div>
     </div>
