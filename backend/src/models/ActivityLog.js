@@ -33,7 +33,7 @@ const activityLogSchema = new mongoose.Schema({
   },
   severity: {
     type: String,
-    enum: ['info', 'warning', 'critical'],
+    enum: ['info', 'warning', 'high', 'critical'],
     default: 'info',
   },
   ip:      { type: String },

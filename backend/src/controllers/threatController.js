@@ -119,16 +119,35 @@ exports.getSimulations = (req, res) => {
   res.json({ simulations: list });
 };
 
+const SIM_EVENT_MAP = {
+  'brute-force':         'BRUTE_FORCE_DETECTED',
+  'phishing':            'SUSPICIOUS_IP',
+  'credential-stuffing': 'SUSPICIOUS_DEVICE',
+  'session-hijacking':   'CONCURRENT_SESSION',
+  'firefox-hijacking':   'SUSPICIOUS_DEVICE',
+};
+
+const SIM_ALERT_TYPE_MAP = {
+  'brute-force':         'BRUTE_FORCE_DETECTED',
+  'phishing':            'SUSPICIOUS_IP',
+  'credential-stuffing': 'SUSPICIOUS_DEVICE',
+  'session-hijacking':   'CONCURRENT_SESSION',
+  'firefox-hijacking':   'SUSPICIOUS_DEVICE',
+};
+
 exports.runSimulation = async (req, res, next) => {
   try {
     const { type } = req.params;
     const sim = SIMULATIONS[type];
     if (!sim) return res.status(404).json({ error: 'Unknown simulation type.' });
 
+    const logEvent   = SIM_EVENT_MAP[type]   || 'BRUTE_FORCE_DETECTED';
+    const alertType  = SIM_ALERT_TYPE_MAP[type] || 'BRUTE_FORCE_DETECTED';
+
     // Log the simulation in activity log for realism
     await ActivityLog.create({
       userId:   req.user._id,
-      event:    'BRUTE_FORCE_DETECTED',
+      event:    logEvent,
       severity: 'warning',
       details:  `[SIMULATION] ${sim.name} run by user`,
     });
@@ -136,7 +155,7 @@ exports.runSimulation = async (req, res, next) => {
     // Create a simulation alert
     await Alert.create({
       userId:   req.user._id,
-      type:     'BRUTE_FORCE',
+      type:     alertType,
       title:    `🧪 Simulation: ${sim.name}`,
       message:  `You ran a "${sim.name}" simulation. Outcome: ${sim.outcome}.`,
       severity: sim.riskLevel === 'CRITICAL' ? 'critical' : 'high',

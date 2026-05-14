@@ -8,7 +8,7 @@ const ActivityLog = require('../models/ActivityLog');
 const Alert = require('../models/Alert');
 
 /**
- * Evaluate password strength (0–25 pts safe, 25 = weakest)
+ * Evaluate password strength (0–20 pts, 0 = low risk, 20 = high risk)
  */
 const scorePassword = (user) => {
   // We can't re-read the plain password, so we use proxy signals:

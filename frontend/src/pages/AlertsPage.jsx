@@ -20,14 +20,22 @@ export function AlertsPage() {
   useEffect(load, [])
 
   const markAll = async () => {
-    await api.patch('/alerts/read-all')
-    setAlerts(a => a.map(x => ({ ...x, read: true })))
-    toast.success('All alerts marked as read')
+    try {
+      await api.patch('/alerts/read-all')
+      setAlerts(a => a.map(x => ({ ...x, read: true })))
+      toast.success('All alerts marked as read')
+    } catch {
+      toast.error('Failed to mark alerts as read')
+    }
   }
 
   const del = async (id) => {
-    await api.delete(`/alerts/${id}`)
-    setAlerts(a => a.filter(x => x._id !== id))
+    try {
+      await api.delete(`/alerts/${id}`)
+      setAlerts(a => a.filter(x => x._id !== id))
+    } catch {
+      toast.error('Failed to delete alert')
+    }
   }
 
   const severityIcon = { low: '🟢', medium: '🟡', high: '🔴', critical: '💀' }

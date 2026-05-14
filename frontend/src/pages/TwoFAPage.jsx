@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
@@ -12,7 +12,7 @@ export default function TwoFAPage() {
   const navigate              = useNavigate()
   const userId                = sessionStorage.getItem('gg_2fa_uid')
 
-  if (!userId) { navigate('/login'); return null }
+  if (!userId) return <Navigate to="/login" replace />
 
   const handle = async (e) => {
     e.preventDefault()

@@ -21,7 +21,10 @@ export default function AccountsPage() {
   const [saving, setSaving]     = useState(false)
 
   const load = () => {
-    api.get('/accounts').then(r => setAccounts(r.data.accounts)).finally(() => setLoading(false))
+    api.get('/accounts')
+      .then(r => setAccounts(r.data.accounts))
+      .catch(() => toast.error('Failed to load accounts'))
+      .finally(() => setLoading(false))
   }
   useEffect(load, [])
 
@@ -43,9 +46,13 @@ export default function AccountsPage() {
 
   const remove = async (id, platform) => {
     if (!confirm(`Remove ${platform} account?`)) return
-    await api.delete(`/accounts/${id}`)
-    setAccounts(a => a.filter(x => x._id !== id))
-    toast.success('Account removed')
+    try {
+      await api.delete(`/accounts/${id}`)
+      setAccounts(a => a.filter(x => x._id !== id))
+      toast.success('Account removed')
+    } catch {
+      toast.error('Failed to remove account')
+    }
   }
 
   return (

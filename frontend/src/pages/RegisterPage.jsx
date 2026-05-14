@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { Shield, Eye, EyeOff, User, Mail, Lock } from 'lucide-react'
@@ -19,6 +20,7 @@ export default function RegisterPage() {
   const [form, setForm]         = useState({ username: '', email: '', password: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading]   = useState(false)
+  const { login }               = useAuth()
   const navigate                = useNavigate()
 
   const strength = strengthLabel(form.password)
@@ -28,8 +30,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       const { data } = await api.post('/auth/register', form)
-      localStorage.setItem('gg_token', data.token)
-      localStorage.setItem('gg_user', JSON.stringify(data.user))
+      login(data.token, data.user)
       toast.success('Account created! Welcome to GAMEGUARD.')
       navigate('/')
     } catch (err) {

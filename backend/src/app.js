@@ -26,13 +26,14 @@ const app = express();
 app.use(helmet());
 app.use(cookieParser());
 
+const isDev = process.env.NODE_ENV !== 'production';
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  ...(isDev ? ['http://localhost:8000', 'http://127.0.0.1:3000', 'http://127.0.0.1:8000'] : []),
+];
+
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:8000',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:8000'
-  ],
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],

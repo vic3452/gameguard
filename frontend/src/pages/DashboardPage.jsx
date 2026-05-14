@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import api from '../lib/api'
 import { Shield, AlertTriangle, Clock, Gamepad2, Wifi, Monitor, RefreshCw } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
@@ -182,7 +183,7 @@ export default function DashboardPage() {
         <div className="gamer-card p-5">
           <div className="font-display text-xs text-gray-400 mb-4 tracking-widest">LINKED GAMING ACCOUNTS</div>
           {data.accounts?.length === 0 && (
-            <p className="font-mono-gg text-gray-600 text-xs">No accounts linked yet. <a href="/accounts" className="text-purple-400 hover:underline">Add one →</a></p>
+            <p className="font-mono-gg text-gray-600 text-xs">No accounts linked yet. <Link to="/accounts" className="text-purple-400 hover:underline">Add one →</Link></p>
           )}
           <div className="space-y-2">
             {data.accounts?.map(acc => (

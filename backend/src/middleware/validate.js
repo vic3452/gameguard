@@ -39,10 +39,6 @@ const schemas = {
     notes:    Joi.string().max(500).optional(),
   }),
 
-  changePassword: Joi.object({
-    currentPassword: Joi.string().required(),
-    newPassword:     passwordRules,
-  }),
 };
 
 /**

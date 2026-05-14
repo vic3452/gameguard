@@ -151,12 +151,21 @@ exports.verify2FA = async (req, res, next) => {
     const parsed  = parseDevice(req.headers['user-agent']);
     const deviceKey = `${parsed.browser}/${parsed.os}`;
 
+    // Reset failed count and lockout on successful 2FA
+    user.failedLoginCount = 0;
+    user.lockedUntil = undefined;
+
+    const flags = await analyzeLogin(user, { ip, device: deviceKey, browser: parsed.browser, os: parsed.os, success: true });
+    await processThreatFlags(user, flags, { ip, device: deviceKey, browser: parsed.browser, os: parsed.os });
+
     if (!user.knownIPs.includes(ip)) user.knownIPs.push(ip);
     if (!user.knownDevices.includes(deviceKey)) user.knownDevices.push(deviceKey);
 
     const sessionId = uuidv4();
     user.sessions.push({ sessionId, ip, device: deviceKey, browser: parsed.browser, os: parsed.os });
     user.lastLoginAt = new Date();
+    user.lastLoginIP = ip;
+    user.lastLoginDevice = deviceKey;
 
     await user.save({ validateBeforeSave: false });
     await ActivityLog.create({ userId, event: '2FA_VERIFIED', severity: 'info', ip, ...parsed });
