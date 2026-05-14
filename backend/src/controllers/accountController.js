@@ -1,68 +1,50 @@
-/**
- * Gaming Accounts Controller
- * Simulated platform account management
- */
-
+const asyncHandler  = require('../utils/asyncHandler');
 const GamingAccount = require('../models/GamingAccount');
 const ActivityLog   = require('../models/ActivityLog');
 
-exports.getAccounts = async (req, res, next) => {
-  try {
-    const accounts = await GamingAccount.find({ userId: req.user._id }).sort({ addedAt: -1 });
-    res.json({ accounts });
-  } catch (err) { next(err); }
-};
+exports.getAccounts = asyncHandler(async (req, res) => {
+  const accounts = await GamingAccount.find({ userId: req.user._id }).sort({ addedAt: -1 });
+  res.json({ accounts });
+});
 
-exports.addAccount = async (req, res, next) => {
-  try {
-    const { platform, username, notes } = req.body;
+exports.addAccount = asyncHandler(async (req, res) => {
+  const { platform, username, notes } = req.body;
 
-    const exists = await GamingAccount.findOne({ userId: req.user._id, platform });
-    if (exists) return res.status(409).json({ error: `${platform} account already linked.` });
+  const exists = await GamingAccount.findOne({ userId: req.user._id, platform });
+  if (exists) return res.status(409).json({ error: `${platform} account already linked.` });
 
-    const account = await GamingAccount.create({
-      userId: req.user._id,
-      platform,
-      username,
-      notes,
-    });
+  const account = await GamingAccount.create({ userId: req.user._id, platform, username, notes });
+  await ActivityLog.create({
+    userId:   req.user._id,
+    event:    'ACCOUNT_ADDED',
+    severity: 'info',
+    details:  `Linked ${platform} account: ${username}`,
+  });
 
-    await ActivityLog.create({
-      userId:   req.user._id,
-      event:    'ACCOUNT_ADDED',
-      severity: 'info',
-      details:  `Linked ${platform} account: ${username}`,
-    });
+  res.status(201).json({ account });
+});
 
-    res.status(201).json({ account });
-  } catch (err) { next(err); }
-};
+exports.updateAccount = asyncHandler(async (req, res) => {
+  const { username, notes, accountStatus } = req.body;
+  const account = await GamingAccount.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user._id },
+    { username, notes, accountStatus },
+    { new: true }
+  );
+  if (!account) return res.status(404).json({ error: 'Account not found.' });
+  res.json({ account });
+});
 
-exports.updateAccount = async (req, res, next) => {
-  try {
-    const { username, notes, accountStatus } = req.body;
-    const account = await GamingAccount.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user._id },
-      { username, notes, accountStatus },
-      { new: true }
-    );
-    if (!account) return res.status(404).json({ error: 'Account not found.' });
-    res.json({ account });
-  } catch (err) { next(err); }
-};
+exports.deleteAccount = asyncHandler(async (req, res) => {
+  const account = await GamingAccount.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+  if (!account) return res.status(404).json({ error: 'Account not found.' });
 
-exports.deleteAccount = async (req, res, next) => {
-  try {
-    const account = await GamingAccount.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
-    if (!account) return res.status(404).json({ error: 'Account not found.' });
+  await ActivityLog.create({
+    userId:   req.user._id,
+    event:    'ACCOUNT_REMOVED',
+    severity: 'info',
+    details:  `Removed ${account.platform} account`,
+  });
 
-    await ActivityLog.create({
-      userId:   req.user._id,
-      event:    'ACCOUNT_REMOVED',
-      severity: 'info',
-      details:  `Removed ${account.platform} account`,
-    });
-
-    res.json({ message: 'Account removed.' });
-  } catch (err) { next(err); }
-};
+  res.json({ message: 'Account removed.' });
+});

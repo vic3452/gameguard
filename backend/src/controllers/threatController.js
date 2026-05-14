@@ -1,11 +1,6 @@
-/**
- * Threat Simulation Controller
- * Simulates brute-force, phishing, credential stuffing attacks
- * for educational purposes — no real network requests
- */
-
-const ActivityLog = require('../models/ActivityLog');
-const Alert       = require('../models/Alert');
+const asyncHandler = require('../utils/asyncHandler');
+const ActivityLog  = require('../models/ActivityLog');
+const Alert        = require('../models/Alert');
 
 const SIMULATIONS = {
   'brute-force': {
@@ -27,7 +22,6 @@ const SIMULATIONS = {
       'Set up alerts for brute-force patterns',
     ],
   },
-
   'phishing': {
     name:        'Phishing Attack',
     description: 'An attacker sends a fake email mimicking your gaming platform to steal credentials.',
@@ -47,7 +41,6 @@ const SIMULATIONS = {
       'Use a password manager to auto-fill only on real sites',
     ],
   },
-
   'credential-stuffing': {
     name:        'Credential Stuffing',
     description: 'Attacker uses leaked username/password pairs from other breaches to access your account.',
@@ -67,7 +60,6 @@ const SIMULATIONS = {
       'Enable login notifications for every platform',
     ],
   },
-
   'session-hijacking': {
     name:        'Session Hijacking',
     description: 'Attacker steals your active session token to impersonate you without a password.',
@@ -87,7 +79,6 @@ const SIMULATIONS = {
       'Enable concurrent session alerts in GAMEGUARD',
     ],
   },
-
   'firefox-hijacking': {
     name:        'Firefox Browser Hijacking',
     description: 'A malicious extension or malware modifies your Firefox security settings or steals stored passwords.',
@@ -109,16 +100,6 @@ const SIMULATIONS = {
   },
 };
 
-exports.getSimulations = (req, res) => {
-  const list = Object.entries(SIMULATIONS).map(([id, sim]) => ({
-    id,
-    name:        sim.name,
-    description: sim.description,
-    riskLevel:   sim.riskLevel,
-  }));
-  res.json({ simulations: list });
-};
-
 const SIM_EVENT_MAP = {
   'brute-force':         'BRUTE_FORCE_DETECTED',
   'phishing':            'SUSPICIOUS_IP',
@@ -135,40 +116,47 @@ const SIM_ALERT_TYPE_MAP = {
   'firefox-hijacking':   'SUSPICIOUS_DEVICE',
 };
 
-exports.runSimulation = async (req, res, next) => {
-  try {
-    const { type } = req.params;
-    const sim = SIMULATIONS[type];
-    if (!sim) return res.status(404).json({ error: 'Unknown simulation type.' });
+exports.getSimulations = (req, res) => {
+  const list = Object.entries(SIMULATIONS).map(([id, sim]) => ({
+    id,
+    name:        sim.name,
+    description: sim.description,
+    riskLevel:   sim.riskLevel,
+  }));
+  res.json({ simulations: list });
+};
 
-    const logEvent   = SIM_EVENT_MAP[type]   || 'BRUTE_FORCE_DETECTED';
-    const alertType  = SIM_ALERT_TYPE_MAP[type] || 'BRUTE_FORCE_DETECTED';
+exports.runSimulation = asyncHandler(async (req, res) => {
+  const { type } = req.params;
+  const sim = SIMULATIONS[type];
+  if (!sim) return res.status(404).json({ error: 'Unknown simulation type.' });
 
-    // Log the simulation in activity log for realism
-    await ActivityLog.create({
+  const logEvent  = SIM_EVENT_MAP[type]      || 'BRUTE_FORCE_DETECTED';
+  const alertType = SIM_ALERT_TYPE_MAP[type] || 'BRUTE_FORCE_DETECTED';
+
+  await Promise.all([
+    ActivityLog.create({
       userId:   req.user._id,
       event:    logEvent,
       severity: 'warning',
       details:  `[SIMULATION] ${sim.name} run by user`,
-    });
-
-    // Create a simulation alert
-    await Alert.create({
+    }),
+    Alert.create({
       userId:   req.user._id,
       type:     alertType,
       title:    `🧪 Simulation: ${sim.name}`,
       message:  `You ran a "${sim.name}" simulation. Outcome: ${sim.outcome}.`,
       severity: sim.riskLevel === 'CRITICAL' ? 'critical' : 'high',
       metadata: { simulation: true, type },
-    });
+    }),
+  ]);
 
-    res.json({
-      simulation: sim.name,
-      description: sim.description,
-      steps: sim.steps,
-      outcome: sim.outcome,
-      riskLevel: sim.riskLevel,
-      recommendations: sim.recommendations,
-    });
-  } catch (err) { next(err); }
-};
+  res.json({
+    simulation:      sim.name,
+    description:     sim.description,
+    steps:           sim.steps,
+    outcome:         sim.outcome,
+    riskLevel:       sim.riskLevel,
+    recommendations: sim.recommendations,
+  });
+});

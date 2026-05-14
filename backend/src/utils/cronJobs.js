@@ -1,13 +1,5 @@
-/**
- * Background Cron Jobs
- * - Clean up old sessions
- * - Unlock accounts
- * - Detect long-running suspicious patterns
- */
-
 const cron = require('node-cron');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
 
 const startCronJobs = () => {
   // Every hour: unlock accounts whose lockout period has expired
@@ -25,22 +17,19 @@ const startCronJobs = () => {
     }
   });
 
-  // Every 6 hours: mark stale sessions as inactive (>24h without activity)
+  // Every 6 hours: mark stale sessions as inactive using MongoDB arrayFilters
+  // Avoids loading all users into memory
   cron.schedule('0 */6 * * *', async () => {
     try {
       const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const users  = await User.find({ 'sessions.isActive': true });
-      for (const user of users) {
-        let changed = false;
-        user.sessions.forEach(s => {
-          if (s.isActive && s.lastActive < cutoff) {
-            s.isActive = false;
-            changed = true;
-          }
-        });
-        if (changed) await user.save({ validateBeforeSave: false });
+      const result = await User.updateMany(
+        { 'sessions.isActive': true, 'sessions.lastActive': { $lt: cutoff } },
+        { $set: { 'sessions.$[elem].isActive': false } },
+        { arrayFilters: [{ 'elem.isActive': true, 'elem.lastActive': { $lt: cutoff } }] }
+      );
+      if (result.modifiedCount > 0) {
+        console.log(`[CRON] Deactivated stale sessions on ${result.modifiedCount} account(s)`);
       }
-      console.log('[CRON] Stale session cleanup complete');
     } catch (err) {
       console.error('[CRON] Session cleanup failed:', err.message);
     }

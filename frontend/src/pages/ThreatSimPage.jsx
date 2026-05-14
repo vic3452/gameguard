@@ -1,41 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { Sword, Play, AlertTriangle, CheckCircle, Shield } from 'lucide-react'
+import { useApiData } from '../hooks/useApiData'
+import Spinner from '../components/Spinner'
+import PageHeader from '../components/PageHeader'
 
 const TYPE_ICONS = {
-  'brute-force':          { icon: '🔨', color: '#ef4444' },
-  'phishing':             { icon: '🎣', color: '#f59e0b' },
-  'credential-stuffing':  { icon: '🗂️', color: '#dc2626' },
-  'session-hijacking':    { icon: '🍪', color: '#f59e0b' },
-  'firefox-hijacking':    { icon: '🦊', color: '#ea580c' },
+  'brute-force':         { icon: '🔨', color: '#ef4444' },
+  'phishing':            { icon: '🎣', color: '#f59e0b' },
+  'credential-stuffing': { icon: '🗂️', color: '#dc2626' },
+  'session-hijacking':   { icon: '🍪', color: '#f59e0b' },
+  'firefox-hijacking':   { icon: '🦊', color: '#ea580c' },
 }
 
-const OUTCOME_COLOR = {
-  'BLOCKED': '#10b981',
-  'DETECTED': '#f59e0b',
-}
+const stepColor = { info: '#7c3aed', warning: '#f59e0b', critical: '#ef4444', success: '#10b981' }
 
 export default function ThreatSimPage() {
-  const [simulations, setSimulations] = useState([])
-  const [result, setResult]           = useState(null)
-  const [running, setRunning]         = useState(null)
-  const [stepIndex, setStepIndex]     = useState(-1)
+  const { data, loading } = useApiData('/threats', 'Failed to load simulations')
+  const simulations = data?.simulations ?? []
 
-  useEffect(() => {
-    api.get('/threats').then(r => setSimulations(r.data.simulations))
-  }, [])
+  const [result, setResult]       = useState(null)
+  const [running, setRunning]     = useState(null)
+  const [stepIndex, setStepIndex] = useState(-1)
 
   const run = async (type) => {
     setRunning(type)
     setResult(null)
     setStepIndex(-1)
     try {
-      const { data } = await api.post(`/threats/${type}/run`)
-      // Animate steps one by one
-      setResult(data)
-      for (let i = 0; i < data.steps.length; i++) {
-        await new Promise(r => setTimeout(r, data.steps[i].time || 800))
+      const { data: res } = await api.post(`/threats/${type}/run`)
+      setResult(res)
+      for (let i = 0; i < res.steps.length; i++) {
+        await new Promise(r => setTimeout(r, res.steps[i].time || 800))
         setStepIndex(i)
       }
     } catch {
@@ -45,38 +42,35 @@ export default function ThreatSimPage() {
     }
   }
 
-  const stepColor = { info: '#7c3aed', warning: '#f59e0b', critical: '#ef4444', success: '#10b981' }
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-xl text-white tracking-wider">THREAT SIMULATOR</h1>
-        <p className="font-mono-gg text-gray-500 text-xs mt-1">
-          Simulate real attacks in a safe, controlled environment to understand how they work
-        </p>
-      </div>
+      <PageHeader
+        title="THREAT SIMULATOR"
+        sub="Simulate real attacks in a safe, controlled environment to understand how they work"
+      />
 
-      {/* Warning banner */}
       <div className="p-4 rounded-lg flex items-start gap-3"
            style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
         <AlertTriangle size={16} className="text-yellow-400 flex-shrink-0 mt-0.5" />
         <div>
           <p className="font-mono-gg text-xs text-yellow-300 font-bold mb-1">SIMULATION MODE — EDUCATIONAL ONLY</p>
           <p className="font-mono-gg text-xs text-yellow-600">
-            These simulations are completely safe. No real attacks are performed. All outcomes are simulated for educational purposes.
+            These simulations are completely safe. No real attacks are performed.
           </p>
         </div>
       </div>
+
+      {loading && <Spinner text="Loading simulations..." />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Simulation list */}
         <div className="space-y-3">
           <div className="font-display text-xs text-gray-400 tracking-widest">AVAILABLE SIMULATIONS</div>
           {simulations.map(sim => {
-            const cfg = TYPE_ICONS[sim.id] || { icon: '⚡', color: '#7c3aed' }
+            const cfg       = TYPE_ICONS[sim.id] || { icon: '⚡', color: '#7c3aed' }
             const isRunning = running === sim.id
             return (
-              <div key={sim.id} className={`gamer-card p-5 cursor-pointer transition-all ${isRunning ? 'glow-border' : ''}`}
+              <div key={sim.id} className={`gamer-card p-5 transition-all ${isRunning ? 'glow-border' : ''}`}
                    style={{ borderColor: isRunning ? cfg.color : undefined }}>
                 <div className="flex items-start gap-4">
                   <div className="text-3xl flex-shrink-0">{cfg.icon}</div>
@@ -116,7 +110,6 @@ export default function ThreatSimPage() {
             <div className="gamer-card p-5 space-y-4">
               <div className="font-display text-xs text-gray-400 tracking-widest">SIMULATION OUTPUT</div>
 
-              {/* Steps */}
               <div className="space-y-2">
                 {result?.steps.map((step, i) => (
                   <div key={i}
@@ -130,8 +123,7 @@ export default function ThreatSimPage() {
                 ))}
               </div>
 
-              {/* Outcome */}
-              {result && stepIndex >= (result.steps.length - 1) && (
+              {result && stepIndex >= result.steps.length - 1 && (
                 <div className="space-y-4 pt-2">
                   <div className="p-4 rounded-lg" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}>
                     <div className="flex items-center gap-2 mb-1">
@@ -140,7 +132,6 @@ export default function ThreatSimPage() {
                     </div>
                     <span className="font-mono-gg text-sm text-white">{result.outcome}</span>
                   </div>
-
                   <div>
                     <div className="font-display text-xs text-gray-400 mb-3 tracking-widest flex items-center gap-2">
                       <Shield size={12} /> RECOMMENDATIONS

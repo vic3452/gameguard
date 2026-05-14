@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import api from '../lib/api'
-import toast from 'react-hot-toast'
-import { Activity, RefreshCw, Shield, AlertTriangle, TrendingUp, Key } from 'lucide-react'
+import { RefreshCw, Activity, Shield, AlertTriangle, TrendingUp, Key } from 'lucide-react'
+import { useApiData } from '../hooks/useApiData'
+import Spinner from '../components/Spinner'
+import PageHeader from '../components/PageHeader'
 
 const BreakdownBar = ({ label, score, max, color, icon: Icon }) => (
   <div className="space-y-2">
@@ -20,20 +20,10 @@ const BreakdownBar = ({ label, score, max, color, icon: Icon }) => (
 )
 
 export default function RiskPage() {
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { data, loading, reload } = useApiData('/risk-score', 'Failed to load risk score')
 
-  const load = () => {
-    setLoading(true)
-    api.get('/risk-score')
-      .then(r => setData(r.data))
-      .catch(() => toast.error('Failed to load risk score'))
-      .finally(() => setLoading(false))
-  }
-  useEffect(load, [])
-
-  if (loading) return <div className="font-mono-gg text-purple-400 animate-pulse text-sm pt-8">Calculating risk score...</div>
-  if (!data) return null
+  if (loading) return <Spinner text="Calculating risk score..." />
+  if (!data)   return null
 
   const { score, level, breakdown, tips } = data
   const levelCfg = {
@@ -44,25 +34,25 @@ export default function RiskPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-xl text-white tracking-wider">RISK SCORE ENGINE</h1>
-          <p className="font-mono-gg text-gray-500 text-xs mt-1">Dynamic security assessment</p>
-        </div>
-        <button onClick={load} className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors">
-          <RefreshCw size={14} /> <span className="font-mono-gg text-xs">RECALCULATE</span>
-        </button>
-      </div>
+      <PageHeader
+        title="RISK SCORE ENGINE"
+        sub="Dynamic security assessment"
+        action={
+          <button onClick={reload} className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors">
+            <RefreshCw size={14} />
+            <span className="font-mono-gg text-xs">RECALCULATE</span>
+          </button>
+        }
+      />
 
-      {/* Main score display */}
+      {/* Main score */}
       <div className="gamer-card p-8 text-center" style={{ borderColor: levelCfg.border, background: `linear-gradient(135deg, #0d0d1f, ${levelCfg.bg})` }}>
         <div className="font-mono-gg text-xs text-gray-400 mb-6 tracking-widest">OVERALL RISK SCORE</div>
         <div className="relative inline-block mb-6">
           <svg width="180" height="180" viewBox="0 0 180 180">
             <circle cx="90" cy="90" r="75" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
             <circle cx="90" cy="90" r="75" fill="none" stroke={levelCfg.color} strokeWidth="12"
-                    strokeDasharray={`${(score / 100) * 471} 471`}
-                    strokeLinecap="round" strokeDashoffset="118"
+                    strokeDasharray={`${(score / 100) * 471} 471`} strokeLinecap="round" strokeDashoffset="118"
                     style={{ filter: `drop-shadow(0 0 10px ${levelCfg.color})`, transform: 'rotate(-90deg)', transformOrigin: '90px 90px', transition: 'stroke-dasharray 1s ease' }} />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -78,18 +68,16 @@ export default function RiskPage() {
       <div className="gamer-card p-6">
         <div className="font-display text-xs text-gray-400 mb-5 tracking-widest">SCORE BREAKDOWN</div>
         <div className="space-y-5">
-          <BreakdownBar label="Password Security" score={breakdown.password} max={20} color={breakdown.password > 12 ? '#ef4444' : '#10b981'} icon={Key} />
-          <BreakdownBar label="Two-Factor Authentication" score={breakdown.twoFA} max={25} color={breakdown.twoFA > 0 ? '#ef4444' : '#10b981'} icon={Shield} />
-          <BreakdownBar label="Recent Suspicious Events" score={breakdown.recentEvents} max={40} color={breakdown.recentEvents > 20 ? '#ef4444' : breakdown.recentEvents > 5 ? '#f59e0b' : '#10b981'} icon={AlertTriangle} />
-          <BreakdownBar label="Login Health (Failed Attempts)" score={breakdown.loginHealth} max={15} color={breakdown.loginHealth > 9 ? '#ef4444' : breakdown.loginHealth > 3 ? '#f59e0b' : '#10b981'} icon={TrendingUp} />
+          <BreakdownBar label="Password Security"              score={breakdown.password}     max={20} icon={Key}           color={breakdown.password > 12     ? '#ef4444' : '#10b981'} />
+          <BreakdownBar label="Two-Factor Authentication"      score={breakdown.twoFA}        max={25} icon={Shield}        color={breakdown.twoFA > 0        ? '#ef4444' : '#10b981'} />
+          <BreakdownBar label="Recent Suspicious Events"       score={breakdown.recentEvents} max={40} icon={AlertTriangle} color={breakdown.recentEvents > 20 ? '#ef4444' : breakdown.recentEvents > 5 ? '#f59e0b' : '#10b981'} />
+          <BreakdownBar label="Login Health (Failed Attempts)" score={breakdown.loginHealth}  max={15} icon={TrendingUp}    color={breakdown.loginHealth > 9  ? '#ef4444' : breakdown.loginHealth > 3 ? '#f59e0b' : '#10b981'} />
         </div>
         <div className="mt-4 pt-4 border-t border-purple-900/20 flex items-center justify-between">
           <span className="font-mono-gg text-sm text-gray-300">Total Risk Score</span>
           <span className="font-display text-lg font-bold" style={{ color: levelCfg.color }}>{score}/100</span>
         </div>
-        <p className="font-mono-gg text-xs text-gray-600 mt-2">
-          Higher scores = higher risk. Aim for 0–25 (LOW).
-        </p>
+        <p className="font-mono-gg text-xs text-gray-600 mt-2">Higher scores = higher risk. Aim for 0–25 (LOW).</p>
       </div>
 
       {/* Tips */}

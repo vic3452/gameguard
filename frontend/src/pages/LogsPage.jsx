@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import api from '../lib/api'
 import toast from 'react-hot-toast'
 import { ScrollText, Filter } from 'lucide-react'
 import { format } from 'date-fns'
+import Spinner from '../components/Spinner'
+import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
 
 const EVENT_COLORS = {
   LOGIN_SUCCESS:        { color: '#10b981', label: '✓ Login Success' },
@@ -22,15 +25,16 @@ const EVENT_COLORS = {
   ACCOUNT_REMOVED:      { color: '#6b7280', label: '🎮 Account Removed' },
 }
 
-export default function LogsPage() {
-  const [logs, setLogs]         = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [filter, setFilter]     = useState({ event: '', severity: '' })
-  const [page, setPage]         = useState(1)
-  const [total, setTotal]       = useState(0)
-  const LIMIT = 20
+const LIMIT = 20
 
-  const load = (pg = 1) => {
+export default function LogsPage() {
+  const [logs, setLogs]       = useState([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter]   = useState({ event: '', severity: '' })
+  const [page, setPage]       = useState(1)
+  const [total, setTotal]     = useState(0)
+
+  const load = useCallback((pg = 1) => {
     setLoading(true)
     const params = new URLSearchParams({ page: pg, limit: LIMIT })
     if (filter.event)    params.set('event', filter.event)
@@ -39,20 +43,15 @@ export default function LogsPage() {
       .then(r => { setLogs(r.data.logs); setTotal(r.data.total); setPage(pg) })
       .catch(() => toast.error('Failed to load logs'))
       .finally(() => setLoading(false))
-  }
+  }, [filter])
 
-  useEffect(() => { load(1) }, [filter])
+  useEffect(() => { load(1) }, [load])
 
   const severityColor = { info: '#10b981', warning: '#f59e0b', critical: '#ef4444' }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-xl text-white tracking-wider">ACTIVITY LOGS</h1>
-          <p className="font-mono-gg text-gray-500 text-xs mt-1">{total} total entries</p>
-        </div>
-      </div>
+      <PageHeader title="ACTIVITY LOGS" sub={`${total} total entries`} />
 
       {/* Filters */}
       <div className="gamer-card p-4 flex items-center gap-4 flex-wrap">
@@ -60,7 +59,9 @@ export default function LogsPage() {
         <select className="input-gamer w-auto text-xs py-1.5"
           value={filter.event} onChange={e => setFilter(f => ({ ...f, event: e.target.value }))}>
           <option value="">All Events</option>
-          {Object.keys(EVENT_COLORS).map(k => <option key={k} value={k}>{EVENT_COLORS[k].label}</option>)}
+          {Object.keys(EVENT_COLORS).map(k => (
+            <option key={k} value={k}>{EVENT_COLORS[k].label}</option>
+          ))}
         </select>
         <select className="input-gamer w-auto text-xs py-1.5"
           value={filter.severity} onChange={e => setFilter(f => ({ ...f, severity: e.target.value }))}>
@@ -71,9 +72,8 @@ export default function LogsPage() {
         </select>
       </div>
 
-      {loading && <div className="font-mono-gg text-purple-400 animate-pulse text-sm">Loading logs...</div>}
+      {loading && <Spinner text="Loading logs..." />}
 
-      {/* Log table */}
       <div className="gamer-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -88,8 +88,7 @@ export default function LogsPage() {
               {logs.map((log, i) => {
                 const evCfg = EVENT_COLORS[log.event] || { color: '#6b7280', label: log.event }
                 return (
-                  <tr key={log._id || i}
-                      className="border-b border-purple-900/10 hover:bg-purple-900/5 transition-colors">
+                  <tr key={log._id || i} className="border-b border-purple-900/10 hover:bg-purple-900/5 transition-colors">
                     <td className="px-4 py-3">
                       <span className="font-mono-gg text-xs" style={{ color: evCfg.color }}>{evCfg.label}</span>
                     </td>
@@ -111,22 +110,24 @@ export default function LogsPage() {
             </tbody>
           </table>
           {!loading && logs.length === 0 && (
-            <div className="p-12 text-center">
-              <ScrollText size={32} className="mx-auto text-gray-700 mb-3" />
-              <p className="font-mono-gg text-gray-500 text-sm">No logs found for selected filters.</p>
-            </div>
+            <EmptyState icon={ScrollText} sub="No logs found for selected filters." />
           )}
         </div>
       </div>
 
-      {/* Pagination */}
       {total > LIMIT && (
         <div className="flex items-center justify-center gap-3">
           <button onClick={() => load(page - 1)} disabled={page === 1}
-                  className="btn-primary text-xs disabled:opacity-30" style={{ padding: '6px 14px' }}>← PREV</button>
-          <span className="font-mono-gg text-xs text-gray-400">Page {page} of {Math.ceil(total / LIMIT)}</span>
+                  className="btn-primary text-xs disabled:opacity-30" style={{ padding: '6px 14px' }}>
+            ← PREV
+          </button>
+          <span className="font-mono-gg text-xs text-gray-400">
+            Page {page} of {Math.ceil(total / LIMIT)}
+          </span>
           <button onClick={() => load(page + 1)} disabled={page >= Math.ceil(total / LIMIT)}
-                  className="btn-primary text-xs disabled:opacity-30" style={{ padding: '6px 14px' }}>NEXT →</button>
+                  className="btn-primary text-xs disabled:opacity-30" style={{ padding: '6px 14px' }}>
+            NEXT →
+          </button>
         </div>
       )}
     </div>
